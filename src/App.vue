@@ -10,7 +10,8 @@ import axios from "axios";
 import moment from "moment";
 moment.locale("it");
 const BASE_URL = "https://countdown-factory.herokuapp.com";
-const COUNTDOWN_API = BASE_URL + "/get_countdown/";
+const GET_COUNTDOWN_API = BASE_URL + "/get_countdown/";
+const DELETE_COUNTDOWN_API = BASE_URL + "/delete_countdown/";
 
 export default {
   name: "App",
@@ -20,6 +21,7 @@ export default {
   data() {
     return {
       counter: {
+        id: 0,
         name: "",
         startDate: "",
         counterString: "",
@@ -33,6 +35,7 @@ export default {
     };
   },
   methods: {
+
     startCounter() {
       setInterval(() => {
         this.tempCountDownTime = this.tempCountDownTime.subtract(1, "s");
@@ -40,16 +43,31 @@ export default {
         this.getImage();
       }, 1000);
     },
-    getCounterAPI() {
-      axios.get(COUNTDOWN_API).then((resp) => {
+
+    getCounterAPI(index) {
+      axios.get(GET_COUNTDOWN_API).then((resp) => {
         var data = resp.data;
-        var tempEndDate = Date.parse(data[0].end_date);
+        this.counter.id = data[index].id;
+        console.log("ID COUNTER API: "+this.counter.id);
+        var tempEndDate = Date.parse(data[index].end_date);
         var x = moment(tempEndDate);
         var y = moment(Date.now());
         var duration = moment.duration(x.diff(y));
         this.tempCountDownTime = duration;
       });
     },
+
+    deleteCounterAPI(){
+      console.log("ID FROM DELETE: "+this.counter.id);
+      axios.delete(DELETE_COUNTDOWN_API+"?id="+this.counter.id.toString()).then((resp)=> {
+        console.log(resp);
+        console.log(resp.data);
+        if(resp.status >= 200 && resp.status<300){
+          this.getCounterAPI(0);
+        }
+      });
+    },
+
     addZero(num = "") {
       if (num.length < 2) {
         return "0" + num;
@@ -80,16 +98,18 @@ export default {
         this.counter.minutes == 0 &&
         this.counter.seconds == 0
       ) {
+        if(!this.counterState){
         this.counterState = true;
-        this.getCounterAPI();
+        this.deleteCounterAPI();
+        }
       } else {
         this.counterState = false;
-        
       }
     },
   },
+
   mounted() {
-    this.getCounterAPI();
+    this.getCounterAPI(0);
     this.startCounter();
   },
 };
